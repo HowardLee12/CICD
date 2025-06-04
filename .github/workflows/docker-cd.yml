@@ -20,7 +20,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::640168440704:role/GitHubActionsPushToECR
+          role-to-assume: arn:aws:iam::640168440704:role/GitHubActionsDeployToECS
           aws-region: us-east-1
 
       - name: Deploy to ECS
