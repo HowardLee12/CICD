@@ -1,0 +1,32 @@
+# .github/workflows/docker-cd.yml
+name: Deploy to ECS
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::640168440704:role/GitHubActionsPushToECR
+          aws-region: us-east-1
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ecs-task-def.json
+          service: howard-ecs-service
+          cluster: howard-ecs-cluster
+          wait-for-service-stability: true
