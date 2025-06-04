@@ -1,0 +1,68 @@
+# .github/workflows/deploy-staging.yml
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [main]
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'push' }}
+    
+    permissions:
+      id-token: write
+      contents: read
+
+    environment:
+      name: staging
+      url: https://staging.yourapp.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::640168440704:role/GitHubActionsDeployToECS
+          aws-region: us-east-1
+
+      - name: Generate image tag
+        id: image-tag
+        run: |
+          TAG="staging-${GITHUB_SHA::8}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Update task definition
+        run: |
+          IMAGE_TAG=${{ steps.image-tag.outputs.tag }}
+          sed -i "s|640168440704.dkr.ecr.us-east-1.amazonaws.com/howard-test:.*\"|640168440704.dkr.ecr.us-east-1.amazonaws.com/howard-test:$IMAGE_TAG\"|" environments/staging/ecs-task-def.json
+
+      - name: Deploy to ECS Staging
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: environments/staging/ecs-task-def.json
+          service: howard-ecs-service-staging
+          cluster: howard-ecs-cluster-staging
+          wait-for-service-stability: true
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests against staging environment..."
+          # 這裡可以加入 API 健康檢查或基本功能測試
+          # curl -f https://staging.yourapp.com/health || exit 1
+
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ Staging deployment successful"
+            echo "🚀 Ready for production deployment"
+          else
+            echo "❌ Staging deployment failed"
+          fi

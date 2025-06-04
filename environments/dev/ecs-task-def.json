@@ -1,0 +1,50 @@
+{
+    "family": "howard-task-dev",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "2048",
+    "memory": "4096",
+    "executionRoleArn": "arn:aws:iam::640168440704:role/ecsTaskExecutionRole",
+    "taskRoleArn": "arn:aws:iam::640168440704:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
+      {
+        "name": "howard-app-dev",
+        "image": "640168440704.dkr.ecr.us-east-1.amazonaws.com/howard-test:dev-latest",
+        "cpu": 1024,
+        "portMappings": [
+          {
+            "containerPort": 8080,
+            "hostPort": 8080,
+            "protocol": "tcp",
+            "appProtocol": "http"
+          }
+        ],
+        "essential": true,
+        "environment": [
+          {
+            "name": "ENVIRONMENT",
+            "value": "development"
+          },
+          {
+            "name": "LOG_LEVEL",
+            "value": "DEBUG"
+          },
+          {
+            "name": "PORT",
+            "value": "8080"
+          }
+        ],
+        "logConfiguration": {
+          "logDriver": "awslogs",
+          "options": {
+            "awslogs-group": "/ecs/howard-task-dev",
+            "awslogs-region": "us-east-1",
+            "awslogs-create-group": "true",
+            "awslogs-stream-prefix": "ecs",
+            "mode": "non-blocking",
+            "max-buffer-size": "25m"
+          }
+        }
+      }
+    ]
+  }

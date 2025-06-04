@@ -1,0 +1,69 @@
+# .github/workflows/deploy-dev.yml
+name: Deploy to Development
+
+on:
+  push:
+    branches:
+      - 'feature/**'
+      - 'develop'
+      - 'hotfix/**'
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
+    branches:
+      - 'feature/**'
+      - 'develop'
+      - 'hotfix/**'
+
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'push' }}
+    
+    permissions:
+      id-token: write
+      contents: read
+
+    environment:
+      name: development
+      url: https://dev.yourapp.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::640168440704:role/GitHubActionsDeployToECS
+          aws-region: us-east-1
+
+      - name: Generate image tag
+        id: image-tag
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          BRANCH_NAME=${BRANCH_NAME//\//-}
+          TAG="dev-${BRANCH_NAME}-${GITHUB_SHA::8}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Update task definition
+        run: |
+          IMAGE_TAG=${{ steps.image-tag.outputs.tag }}
+          sed -i "s|640168440704.dkr.ecr.us-east-1.amazonaws.com/howard-test:.*\"|640168440704.dkr.ecr.us-east-1.amazonaws.com/howard-test:$IMAGE_TAG\"|" environments/dev/ecs-task-def.json
+
+      - name: Deploy to ECS Development
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: environments/dev/ecs-task-def.json
+          service: howard-ecs-service-dev
+          cluster: howard-ecs-cluster-dev
+          wait-for-service-stability: true
+
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ Development deployment successful"
+          else
+            echo "❌ Development deployment failed"
+          fi

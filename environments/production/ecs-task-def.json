@@ -1,0 +1,60 @@
+{
+    "family": "howard-task-prod",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "4096",
+    "memory": "8192",
+    "executionRoleArn": "arn:aws:iam::640168440704:role/ecsTaskExecutionRole",
+    "taskRoleArn": "arn:aws:iam::640168440704:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
+      {
+        "name": "howard-app-prod",
+        "image": "640168440704.dkr.ecr.us-east-1.amazonaws.com/howard-test:production-latest",
+        "cpu": 2048,
+        "portMappings": [
+          {
+            "containerPort": 8080,
+            "hostPort": 8080,
+            "protocol": "tcp",
+            "appProtocol": "http"
+          }
+        ],
+        "essential": true,
+        "environment": [
+          {
+            "name": "ENVIRONMENT",
+            "value": "production"
+          },
+          {
+            "name": "LOG_LEVEL",
+            "value": "WARN"
+          },
+          {
+            "name": "PORT",
+            "value": "8080"
+          }
+        ],
+        "healthCheck": {
+          "command": [
+            "CMD-SHELL",
+            "curl -f http://localhost:8080/health || exit 1"
+          ],
+          "interval": 30,
+          "timeout": 5,
+          "retries": 3,
+          "startPeriod": 60
+        },
+        "logConfiguration": {
+          "logDriver": "awslogs",
+          "options": {
+            "awslogs-group": "/ecs/howard-task-prod",
+            "awslogs-region": "us-east-1",
+            "awslogs-create-group": "true",
+            "awslogs-stream-prefix": "ecs",
+            "mode": "non-blocking",
+            "max-buffer-size": "25m"
+          }
+        }
+      }
+    ]
+  }

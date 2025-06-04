@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # Development environment
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - ENVIRONMENT=development
+    ports:
+      - "8080:8080"
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - PORT=8080
+    volumes:
+      - ./app:/app/app:ro  # Mount source code for development
+    restart: unless-stopped
+    profiles: ["dev"]
+
+  # Staging environment (for local testing)
+  app-staging:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - ENVIRONMENT=staging
+    ports:
+      - "8081:8080"
+    environment:
+      - ENVIRONMENT=staging
+      - LOG_LEVEL=INFO
+      - PORT=8080
+    restart: unless-stopped
+    profiles: ["staging"]
+
+  # Local database (if needed)
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=howard_app_dev
+      - POSTGRES_USER=dev_user
+      - POSTGRES_PASSWORD=dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    profiles: ["dev", "staging"]
+
+  # Redis for caching (if needed)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    profiles: ["dev", "staging"]
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: howard-app-network

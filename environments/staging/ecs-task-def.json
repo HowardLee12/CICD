@@ -1,0 +1,50 @@
+{
+    "family": "howard-task-staging",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "4096",
+    "memory": "8192",
+    "executionRoleArn": "arn:aws:iam::640168440704:role/ecsTaskExecutionRole",
+    "taskRoleArn": "arn:aws:iam::640168440704:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
+      {
+        "name": "howard-app-staging",
+        "image": "640168440704.dkr.ecr.us-east-1.amazonaws.com/howard-test:staging-latest",
+        "cpu": 2048,
+        "portMappings": [
+          {
+            "containerPort": 8080,
+            "hostPort": 8080,
+            "protocol": "tcp",
+            "appProtocol": "http"
+          }
+        ],
+        "essential": true,
+        "environment": [
+          {
+            "name": "ENVIRONMENT",
+            "value": "staging"
+          },
+          {
+            "name": "LOG_LEVEL",
+            "value": "INFO"
+          },
+          {
+            "name": "PORT",
+            "value": "8080"
+          }
+        ],
+        "logConfiguration": {
+          "logDriver": "awslogs",
+          "options": {
+            "awslogs-group": "/ecs/howard-task-staging",
+            "awslogs-region": "us-east-1",
+            "awslogs-create-group": "true",
+            "awslogs-stream-prefix": "ecs",
+            "mode": "non-blocking",
+            "max-buffer-size": "25m"
+          }
+        }
+      }
+    ]
+  }
